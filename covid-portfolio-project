@@ -1,0 +1,67 @@
+--Bigquery Queries 
+-- Shows likelihood of dying if you get covid in Brazil
+SELECT Location,date, total_cases, total_deaths, (total_deaths/total_cases) *100 as DeathPercentage 
+FROM `round-bruin-383914.myproject.CovidDeaths`
+WHERE location like '%Brazil%'
+ORDER BY 1,2
+
+-- Shows what percentage of population was infected by Covid in Brazil
+SELECT Location,date,population, total_cases, (total_cases/population) *100 as InfectedPercentagePopulation 
+FROM `round-bruin-383914.myproject.CovidDeaths`
+WHERE location like '%Brazil%'
+ORDER BY 1,2
+
+-- Countrys with highest infection rate compared to population
+SELECT Location,population, MAX(total_cases) as HighestInfectionCount, MAX((total_cases/population)) *100 as InfectedPercentagePopulation 
+FROM `round-bruin-383914.myproject.CovidDeaths`
+WHERE continent is not null
+GROUP BY Location,population
+ORDER BY 4 DESC
+
+-- Countrys with highest deaths count
+SELECT Location, MAX(total_deaths) as TotalDeathCount
+FROM `round-bruin-383914.myproject.CovidDeaths`
+WHERE continent is not null
+GROUP BY Location
+ORDER BY 2 DESC
+
+-- Continents wth highest death counts
+SELECT continent, MAX(total_deaths) as TotalDeathCount
+FROM `round-bruin-383914.myproject.CovidDeaths`
+WHERE continent is not null
+GROUP BY continent
+ORDER BY 2 DESC
+
+-- Global numbers
+SELECT Location,date, total_cases, total_deaths, (total_deaths/total_cases) *100 as DeathPercentage 
+FROM `round-bruin-383914.myproject.CovidDeaths`
+WHERE continent is not null
+ORDER BY 1,2
+
+-- Percentange of dying from covid world wide
+SELECT SUM(new_cases) as total_Cases,SUM(new_deaths) as total_deaths, (SUM(new_deaths)/SUM(new_cases))*100 as percentange_of_dying
+FROM `round-bruin-383914.myproject.CovidDeaths`
+WHERE continent is not null
+ORDER BY 1,2
+
+-- Total population vs Total vaccinations
+SELECT dea.continent, dea.location,dea.date,dea.population,vac.new_vaccinations, SUM(vac.new_vaccinations) OVER (PARTITION BY dea.location ORDER BY dea.location, dea.date) AS RollingPeopleVaccinated
+FROM`round-bruin-383914.myproject.CovidDeaths` dea
+JOIN `round-bruin-383914.myproject.CovidVaccinations` vac
+ON dea.location = vac.location
+AND dea.date = vac.date
+WHERE dea.continent is not null
+ORDER BY 2,3
+
+-- Total population vs Total vaccinations(CTE)
+WITH POP_vs_VAC
+as 
+(SELECT dea.continent, dea.location,dea.date,dea.population,vac.new_vaccinations, SUM(vac.new_vaccinations) OVER (PARTITION BY dea.location ORDER BY dea.location, dea.date) AS RollingPeopleVaccinated
+FROM`round-bruin-383914.myproject.CovidDeaths` dea
+JOIN `round-bruin-383914.myproject.CovidVaccinations` vac
+ON dea.location = vac.location
+AND dea.date = vac.date
+WHERE dea.continent is not null
+)
+SELECT *,(RollingPeopleVaccinated/population)*100 as Percentage_Pop_Vaccinated
+FROM POP_vs_VAC
